@@ -1231,6 +1231,10 @@ UpdateGradeSHIR:
 
 
 UpdateGradeTGM3:
+    ; Are we in the Staff Roll?
+    ld a, [wInStaffRoll]
+    cp a, $FF
+    jp z, TGM3StaffRollGradeUpdate
     ; First things first, Update our grade points.
 .GradePoints
     ; Load the Table address to HL.
@@ -1273,7 +1277,12 @@ UpdateGradeTGM3:
     ; There are some multipliers to help us increase our grade faster
     ld hl, sTGM3ComboMultipliers
     ld a, [hComboCt] ; Example: 3
-    cp a, 0
+    cp a, 0 ; If we got no combo, skip all this part
+    jr z, .levelmultiplier
+    cp a, 11 ; If the combo is greater than 10, make it 10
+    jr c, .notover10
+    ld a, 10
+.notover10
     ld d, a ; ld d, 3
     ld b, 5
     ld a, b ; ld a, 5
@@ -1281,12 +1290,14 @@ UpdateGradeTGM3:
 :   add a, b ; 5+5 = 10 ; 10+5 = 15
     dec d
     jr nz, :- ; go back if d isn't 0
+    sub a, 4 ; Decrease 4 so we don't get the pointer wrong 
     ld b, a ; ld b, 15
     ld a, [hLineClearCt]
     cp a, 0 ; If no lines were cleared, we don't need to do anything, just continue
     jr z, .levelmultiplier
     add a, b
     ld b, 0
+    dec a 
     ld c, a
     add hl, bc
     ld a, [hl] ; Now we got our multiplier!, let's apply it.
@@ -1651,7 +1662,11 @@ TGM3REGRETHandlerB: ; Check if we took too much time to complete a section
     ret ; Done
 
 
-TGM3StaffRollGradeUpdate:
+TGM3StaffRollGradeUpdate::
+    ; Is the player already a GM?
+    ld a, [wDisplayedGrade]
+    cp a, GRADE_GM
+    ret z ; If so, return
     ; Make HL Point to the Staffroll Table
     ld hl, sTGM3StaffrollGrading
     ; Get the offset, if no lines were cleared, return
@@ -1677,6 +1692,11 @@ TGM3StaffRollGradeUpdate:
     ld [wSubgrade], a
     ld a, [wDisplayedGrade]
     inc a
+    ; will the grade be S10?
+    cp a, GRADE_S10
+    jr nz, .nots10 ;If not, continue as normal
+    ld a, GRADE_M1
+.nots10
     ld [wDisplayedGrade], a
     ret
 

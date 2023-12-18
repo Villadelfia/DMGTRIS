@@ -486,6 +486,21 @@ GamePlayEventLoopHandlerB::
     ld a, $FF
     ld [wGameOverIgnoreInput], a
 
+    ; Are we in the Staff Roll?
+    ld a, [wInStaffRoll]
+    cp a, $FF
+    jp nz, .didnotfinish ; No we aren't
+    ; Yes, we are
+    ; Did the player survive the staff roll?
+    ld a, [wCountDownZero]
+    cp a, $FF
+    jr nz, .didnotfinish ; If not, continue
+    ; If it did, award the clear points
+    ld a, 5
+    ld [hLineClearCt], a
+    call TGM3StaffRollGradeUpdate
+.didnotfinish
+
     ; Is it just a regular game over?
     ld a, [wKillScreenActive]
     cp a, $FF
